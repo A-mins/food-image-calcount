@@ -21,7 +21,7 @@ interface CalorieEstimationResult {
 // Your hardcoded OpenAI API key
 // SECURITY NOTE: In a production app, this should be stored securely in environment variables
 // or managed through a backend service, never in client-side code
-const OPENAI_API_KEY = "your-openai-api-key-here"; // Replace with your actual API key
+const OPENAI_API_KEY = "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"; // Replace with your actual API key
 
 /**
  * Send a food description to OpenAI API for calorie estimation
