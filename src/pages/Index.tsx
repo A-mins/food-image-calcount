@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Header from '@/components/Header';
 import Hero from '@/components/Hero';
@@ -9,10 +8,7 @@ import Footer from '@/components/Footer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FoodNutritionData } from '@/services/calorieService';
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
-import { Label } from "@/components/ui/label";
 import { generateFoodDescription, estimateCalories } from '@/services/openaiService';
 
 const Index = () => {
@@ -22,9 +18,6 @@ const Index = () => {
   const [nutritionData, setNutritionData] = useState<FoodNutritionData | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [foodDescription, setFoodDescription] = useState<string>('');
-  const [apiKey, setApiKey] = useState<string>(() => {
-    return localStorage.getItem('openai_api_key') || '';
-  });
   const [calorieEstimate, setCalorieEstimate] = useState<{
     calories: string;
     explanation: string;
@@ -47,24 +40,18 @@ const Index = () => {
       setFoodDescription(description);
       
       // Estimate calories using OpenAI
-      if (apiKey) {
-        const estimate = await estimateCalories(description, apiKey);
-        if (estimate.success) {
-          setCalorieEstimate({
-            calories: estimate.calories,
-            explanation: estimate.explanation
-          });
-        }
+      const estimate = await estimateCalories(description);
+      if (estimate.success) {
+        setCalorieEstimate({
+          calories: estimate.calories,
+          explanation: estimate.explanation
+        });
       }
     } catch (error) {
       console.error("Error in analysis workflow:", error);
     }
     
     setActiveTab('results');
-  };
-  
-  const saveApiKey = () => {
-    localStorage.setItem('openai_api_key', apiKey);
   };
 
   return (
@@ -139,34 +126,6 @@ const Index = () => {
               Upload an image of your meal to get detailed calorie information
             </p>
             
-            <div className="mb-8 max-w-xl mx-auto">
-              <Card>
-                <CardHeader>
-                  <CardTitle>OpenAI API Key</CardTitle>
-                  <CardDescription>
-                    Enter your OpenAI API key to enable calorie estimation
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-col space-y-2">
-                    <Label htmlFor="apiKey">API Key</Label>
-                    <div className="flex space-x-2">
-                      <Input 
-                        id="apiKey"
-                        type="password" 
-                        value={apiKey} 
-                        onChange={e => setApiKey(e.target.value)} 
-                        placeholder="sk-..." 
-                        className="flex-1"
-                      />
-                      <Button onClick={saveApiKey}>Save Key</Button>
-                    </div>
-                    <p className="text-xs text-gray-500">Your API key is stored locally and never sent to our servers</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-            
             <Tabs 
               defaultValue="upload" 
               value={activeTab}
@@ -224,17 +183,11 @@ const Index = () => {
                           </div>
                         </CardContent>
                       </Card>
-                    ) : apiKey ? (
+                    ) : (
                       <Card className="bg-gray-50">
                         <CardContent className="p-4 flex items-center justify-center">
                           <Loader2 className="h-5 w-5 animate-spin mr-2" />
                           <span>Calculating calorie estimate...</span>
-                        </CardContent>
-                      </Card>
-                    ) : (
-                      <Card className="bg-gray-50">
-                        <CardContent className="p-4 text-center">
-                          <p>Enter your OpenAI API key above to get an AI-powered calorie estimate</p>
                         </CardContent>
                       </Card>
                     )}

@@ -18,22 +18,16 @@ interface CalorieEstimationResult {
   success: boolean;
 }
 
-// Your hardcoded OpenAI API key
-// SECURITY NOTE: In a production app, this should be stored securely in environment variables
-// or managed through a backend service, never in client-side code
-const OPENAI_API_KEY = "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"; // Replace with your actual API key
+// Hardcoded OpenAI API key - Replace with your actual API key if needed
+const OPENAI_API_KEY = "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"; 
 
 /**
  * Send a food description to OpenAI API for calorie estimation
  */
 export const estimateCalories = async (
-  description: string,
-  apiKey: string | null = OPENAI_API_KEY
+  description: string
 ): Promise<CalorieEstimationResult> => {
-  // Use the hardcoded API key if none provided
-  const effectiveApiKey = apiKey || OPENAI_API_KEY;
-  
-  if (!effectiveApiKey) {
+  if (!OPENAI_API_KEY) {
     toast.error("No API key available");
     return {
       calories: "0",
@@ -57,7 +51,7 @@ export const estimateCalories = async (
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${effectiveApiKey}`,
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),
