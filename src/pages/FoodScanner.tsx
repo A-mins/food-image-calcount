@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import ImageUploader from '@/components/ImageUploader';
 import { FoodNutritionData } from '@/services/calorieService';
 import CalorieResult from '@/components/CalorieResult';
-import { generateFoodDescription, estimateCalories } from '@/services/openaiService';
+import { generateFoodDescription } from '@/services/openaiService';
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
@@ -16,16 +16,21 @@ const FoodScanner = () => {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [nutritionData, setNutritionData] = useState<FoodNutritionData | null>(null);
   const [foodDescription, setFoodDescription] = useState<string>('');
-  const [calorieEstimate, setCalorieEstimate] = useState<{
+  const [aiNutrition, setAiNutrition] = useState<{
     calories: string;
-    explanation: string;
+    protein: string;
+    carbohydrates: string;
+    fat: string;
+    fiber: string;
+    sodium: string;
   } | null>(null);
   const [showResults, setShowResults] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   
   const handleImageUpload = (file: File) => {
     setSelectedImage(file);
     setNutritionData(null);
-    setCalorieEstimate(null);
+    setAiNutrition(null);
     setFoodDescription('');
     setShowResults(false);
   };
@@ -33,24 +38,21 @@ const FoodScanner = () => {
   const handleAnalysisComplete = async (imgUrl: string, result: FoodNutritionData) => {
     setImageUrl(imgUrl);
     setNutritionData(result);
+    setIsAnalyzing(true);
     
     try {
-      // Generate food description
-      const description = await generateFoodDescription(selectedImage!);
-      setFoodDescription(description);
-      
-      // Estimate calories using OpenAI
-      const estimate = await estimateCalories(description);
-      if (estimate.success) {
-        setCalorieEstimate({
-          calories: estimate.calories,
-          explanation: estimate.explanation
-        });
+      // Generate food description and nutritional info using OpenAI
+      const foodAnalysis = await generateFoodDescription(selectedImage!);
+      if (foodAnalysis.success) {
+        setFoodDescription(foodAnalysis.description);
+        setAiNutrition(foodAnalysis.nutritionalInfo);
       }
       
       setShowResults(true);
     } catch (error) {
       console.error("Error in analysis workflow:", error);
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -94,36 +96,48 @@ const FoodScanner = () => {
                 {foodDescription && (
                   <Card>
                     <CardHeader>
-                      <CardTitle>Food Description</CardTitle>
-                      <CardDescription>AI-generated description of your food</CardDescription>
+                      <CardTitle>AI Food Analysis</CardTitle>
+                      <CardDescription>Detailed food description and nutritional breakdown</CardDescription>
                     </CardHeader>
-                    <CardContent>
-                      <p className="text-gray-700">{foodDescription}</p>
+                    <CardContent className="space-y-6">
+                      <div>
+                        <h4 className="font-medium mb-2">Description:</h4>
+                        <p className="text-gray-700">{foodDescription}</p>
+                      </div>
+                      
+                      {aiNutrition && (
+                        <div>
+                          <h4 className="font-medium mb-2">Nutritional Information:</h4>
+                          <div className="grid grid-cols-2 gap-y-2">
+                            <div className="text-gray-700">Calories:</div>
+                            <div className="font-semibold">{aiNutrition.calories}</div>
+                            
+                            <div className="text-gray-700">Protein:</div>
+                            <div>{aiNutrition.protein}</div>
+                            
+                            <div className="text-gray-700">Carbohydrates:</div>
+                            <div>{aiNutrition.carbohydrates}</div>
+                            
+                            <div className="text-gray-700">Fat:</div>
+                            <div>{aiNutrition.fat}</div>
+                            
+                            <div className="text-gray-700">Fiber:</div>
+                            <div>{aiNutrition.fiber}</div>
+                            
+                            <div className="text-gray-700">Sodium:</div>
+                            <div>{aiNutrition.sodium}</div>
+                          </div>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 )}
                 
-                {calorieEstimate ? (
-                  <Card className="bg-primary/5">
-                    <CardHeader>
-                      <CardTitle className="flex items-center justify-between">
-                        <span>AI Calorie Estimate</span>
-                        <span className="text-xl font-bold text-primary">{calorieEstimate.calories} kcal</span>
-                      </CardTitle>
-                      <CardDescription>Estimated using OpenAI GPT-4</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        <h4 className="font-medium">Breakdown:</h4>
-                        <p className="text-gray-700">{calorieEstimate.explanation}</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ) : (
+                {isAnalyzing && (
                   <Card className="bg-gray-50">
                     <CardContent className="p-4 flex items-center justify-center">
                       <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                      <span>Calculating calorie estimate...</span>
+                      <span>Analyzing food with AI...</span>
                     </CardContent>
                   </Card>
                 )}

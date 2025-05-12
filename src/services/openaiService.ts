@@ -18,6 +18,19 @@ interface CalorieEstimationResult {
   success: boolean;
 }
 
+interface FoodDescriptionResult {
+  description: string;
+  nutritionalInfo: {
+    calories: string;
+    protein: string;
+    carbohydrates: string;
+    fat: string;
+    fiber: string;
+    sodium: string;
+  };
+  success: boolean;
+}
+
 // Hardcoded OpenAI API key - Replace with your actual API key if needed
 const OPENAI_API_KEY = "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"; 
 
@@ -100,28 +113,137 @@ export const estimateCalories = async (
 };
 
 /**
- * Generate a description of the food in the image
- * This is a placeholder function that will be replaced with actual image recognition
- * In a production app, this would use an AI model to analyze the image
+ * Generate a description of the food in the image along with nutritional information
  */
-export const generateFoodDescription = async (file: File): Promise<string> => {
-  // In a real app, you would send the image to an image recognition API
-  // For this prototype, we'll simulate a delay and return a generic description based on the file name
-  await new Promise(resolve => setTimeout(resolve, 1000));
+export const generateFoodDescription = async (file: File): Promise<FoodDescriptionResult> => {
+  if (!OPENAI_API_KEY) {
+    toast.error("No API key available");
+    return {
+      description: "Unable to analyze food without API key.",
+      nutritionalInfo: {
+        calories: "0",
+        protein: "0g",
+        carbohydrates: "0g",
+        fat: "0g",
+        fiber: "0g",
+        sodium: "0mg"
+      },
+      success: false
+    };
+  }
   
-  const fileName = file.name.toLowerCase();
-  
-  if (fileName.includes("salad")) {
-    return "A garden salad with lettuce, tomatoes, cucumber, and a light vinaigrette dressing. Single portion on a medium-sized plate.";
-  } else if (fileName.includes("burger") || fileName.includes("hamburger")) {
-    return "Beef hamburger on a sesame seed bun with lettuce, tomato, cheese, and sauce. Served with a side of french fries. Standard restaurant serving size.";
-  } else if (fileName.includes("pizza")) {
-    return "Two slices of cheese pizza with tomato sauce and mozzarella cheese on a thin crust. Medium-sized slices.";
-  } else if (fileName.includes("fruit")) {
-    return "A fruit bowl containing sliced apple, banana, strawberries, and blueberries. Approximately 2 cups in volume.";
-  } else if (fileName.includes("chicken")) {
-    return "Grilled chicken breast with steamed vegetables (broccoli, carrots) and a small portion of white rice. Restaurant portion, approximately 6oz of chicken.";
-  } else {
-    return "A food dish that appears to contain mixed ingredients. Unable to identify specific components. Appears to be a single serving portion.";
+  try {
+    // In a real app, this would analyze the actual image using OpenAI Vision API
+    // For this prototype, we'll use the file name to create a prompt
+    const fileName = file.name.toLowerCase();
+    let foodType = "food";
+    
+    if (fileName.includes("salad")) {
+      foodType = "garden salad";
+    } else if (fileName.includes("burger") || fileName.includes("hamburger")) {
+      foodType = "hamburger with fries";
+    } else if (fileName.includes("pizza")) {
+      foodType = "pizza slices";
+    } else if (fileName.includes("fruit")) {
+      foodType = "fruit bowl";
+    } else if (fileName.includes("chicken")) {
+      foodType = "grilled chicken with vegetables";
+    }
+    
+    const payload = {
+      model: "gpt-4o",
+      messages: [
+        { 
+          role: "system", 
+          content: "You are a nutrition expert. Provide detailed food descriptions and nutritional information in a structured format."
+        },
+        {
+          role: "user",
+          content: `A user uploaded a photo of ${foodType}. Please provide:
+          1. A detailed description of what this food likely contains (2-3 sentences)
+          2. Nutritional information in EXACTLY this format:
+          
+          Calories: [number] kcal
+          Protein: [number]g
+          Carbohydrates: [number]g
+          Fat: [number]g
+          Fiber: [number]g
+          Sodium: [number]mg
+          
+          Be reasonably accurate with your nutritional estimates for a standard serving.`
+        },
+      ],
+    };
+
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      toast.error(`API Error: ${errorData.error?.message || "Unknown error"}`);
+      return {
+        description: `Error: ${errorData.error?.message || "Unknown error"}`,
+        nutritionalInfo: {
+          calories: "0",
+          protein: "0g",
+          carbohydrates: "0g",
+          fat: "0g",
+          fiber: "0g",
+          sodium: "0mg"
+        },
+        success: false
+      };
+    }
+
+    const data = await response.json() as OpenAIResponse;
+    const content = data.choices[0]?.message?.content || "";
+    
+    // Split the content into description and nutritional info
+    const parts = content.split(/Calories:/i);
+    const description = parts[0].trim();
+    
+    // Parse nutritional information
+    const nutritionalText = "Calories:" + (parts[1] || "");
+    
+    const caloriesMatch = nutritionalText.match(/Calories:\s*(\d+(?:\.\d+)?)/i);
+    const proteinMatch = nutritionalText.match(/Protein:\s*(\d+(?:\.\d+)?)/i);
+    const carbsMatch = nutritionalText.match(/Carbohydrates:\s*(\d+(?:\.\d+)?)/i);
+    const fatMatch = nutritionalText.match(/Fat:\s*(\d+(?:\.\d+)?)/i);
+    const fiberMatch = nutritionalText.match(/Fiber:\s*(\d+(?:\.\d+)?)/i);
+    const sodiumMatch = nutritionalText.match(/Sodium:\s*(\d+(?:\.\d+)?)/i);
+    
+    return {
+      description,
+      nutritionalInfo: {
+        calories: caloriesMatch ? caloriesMatch[1] + " kcal" : "Unknown",
+        protein: proteinMatch ? proteinMatch[1] + "g" : "Unknown",
+        carbohydrates: carbsMatch ? carbsMatch[1] + "g" : "Unknown",
+        fat: fatMatch ? fatMatch[1] + "g" : "Unknown",
+        fiber: fiberMatch ? fiberMatch[1] + "g" : "Unknown",
+        sodium: sodiumMatch ? sodiumMatch[1] + "mg" : "Unknown"
+      },
+      success: true
+    };
+  } catch (error) {
+    console.error("Error generating food description:", error);
+    toast.error("Failed to analyze food. Please try again.");
+    return {
+      description: "Error analyzing food image.",
+      nutritionalInfo: {
+        calories: "0",
+        protein: "0g",
+        carbohydrates: "0g",
+        fat: "0g",
+        fiber: "0g",
+        sodium: "0mg"
+      },
+      success: false
+    };
   }
 };
