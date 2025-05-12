@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Upload, ImageIcon, Loader2 } from "lucide-react";
@@ -16,6 +16,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageUpload, onAnalysis
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDragEnter = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -107,6 +108,12 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageUpload, onAnalysis
     }
   }, [selectedFile, previewImage, onAnalysisComplete]);
 
+  const triggerFileInput = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
   return (
     <Card className="w-full max-w-xl mx-auto">
       <CardContent className="p-6">
@@ -126,18 +133,20 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageUpload, onAnalysis
                 <p className="font-medium mb-2">Drag and drop your food image here</p>
                 <p className="text-sm text-gray-500 mb-4">or click to browse files</p>
               </div>
-              <label className="cursor-pointer">
-                <Button className="bg-primary hover:bg-primary/90 flex gap-2 items-center">
-                  <Upload className="h-4 w-4" />
-                  Upload Image
-                </Button>
-                <input 
-                  type="file" 
-                  className="hidden" 
-                  accept="image/*"
-                  onChange={handleFileSelect}
-                />
-              </label>
+              <Button 
+                className="bg-primary hover:bg-primary/90 flex gap-2 items-center"
+                onClick={triggerFileInput}
+              >
+                <Upload className="h-4 w-4" />
+                Upload Image
+              </Button>
+              <input 
+                ref={fileInputRef}
+                type="file" 
+                className="hidden" 
+                accept="image/*"
+                onChange={handleFileSelect}
+              />
             </div>
           </div>
         ) : (
