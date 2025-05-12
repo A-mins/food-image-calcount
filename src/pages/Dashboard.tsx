@@ -23,7 +23,7 @@ import {
 } from 'recharts';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { getUserProfile, calculateDailyCalories, calculateMacros } from "@/services/profileService";
+import { getUserProfile, calculateCalorieBudget, calculateMacroTargets } from "@/services/profileService";
 import { Link } from 'react-router-dom';
 
 const Dashboard = () => {
@@ -38,10 +38,23 @@ const Dashboard = () => {
         const userData = getUserProfile();
         if (userData) {
           setProfile(userData);
-          const calories = calculateDailyCalories(userData);
+          const calories = calculateCalorieBudget(userData);
           setDailyCalories(calories);
-          const macroData = calculateMacros(calories, userData.goal);
-          setMacros(macroData);
+          const macroData = calculateMacroTargets(calories, userData);
+          setMacros({
+            protein: {
+              grams: macroData.protein,
+              percentage: macroData.proteinCalories / calories,
+            },
+            carbs: {
+              grams: macroData.carbs,
+              percentage: macroData.carbCalories / calories,
+            },
+            fat: {
+              grams: macroData.fat,
+              percentage: macroData.fatCalories / calories,
+            }
+          });
         }
       } catch (error) {
         console.error('Error fetching user data:', error);
