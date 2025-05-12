@@ -47,15 +47,6 @@ export const estimateCalories = async (
     };
   }
 
-  // For demo purposes, if the description contains pasta, return a fake response
-  if (description.toLowerCase().includes('pasta')) {
-    return {
-      calories: "650",
-      explanation: "This bowl of pasta contains approximately 650 calories. The majority of calories come from the carbohydrates in the pasta (about 75g), with additional calories from the olive oil and parmesan cheese. The sauce contributes minimal calories but adds flavor. A typical serving of pasta with sauce is between 600-700 calories depending on portion size and specific ingredients.",
-      success: true,
-    };
-  }
-
   try {
     const payload = {
       model: "gpt-4o",
@@ -139,22 +130,6 @@ export const generateFoodDescription = async (
         sodium: "0mg"
       },
       success: false
-    };
-  }
-  
-  // For demonstration purposes, if filename contains pasta, use a mock response
-  if (file.name.toLowerCase().includes('pasta')) {
-    return {
-      description: "This is a delicious bowl of spaghetti pasta with marinara sauce, topped with fresh basil leaves and grated parmesan cheese. The pasta appears to be al dente and the sauce has chunks of tomato and herbs visible throughout.",
-      nutritionalInfo: {
-        calories: "650 kcal",
-        protein: "18g",
-        carbohydrates: "75g",
-        fat: "21g",
-        fiber: "5g",
-        sodium: "720mg"
-      },
-      success: true
     };
   }
   

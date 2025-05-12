@@ -114,23 +114,6 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageUpload, onAnalysis
     }
   }, []);
 
-  const useDemoPastaImage = useCallback(() => {
-    // Create a File object from a blob
-    const blob = new Blob([''], { type: 'image/jpeg' });
-    const file = new File([blob], 'pasta_image.jpg', { type: 'image/jpeg' });
-    
-    // Set a sample image URL for preview
-    setPreviewImage('/placeholder.svg');
-    
-    // Store the file for analysis
-    setSelectedFile(file);
-    
-    // Pass file to parent component
-    onImageUpload(file);
-    
-    toast.info("Demo pasta image selected. Click 'Analyze Calories' to see results.");
-  }, [onImageUpload]);
-
   return (
     <Card className="w-full max-w-xl mx-auto">
       <CardContent className="p-6">
@@ -150,21 +133,13 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageUpload, onAnalysis
                 <p className="font-medium mb-2">Drag and drop your food image here</p>
                 <p className="text-sm text-gray-500 mb-4">or click to browse files</p>
               </div>
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Button 
-                  className="bg-primary hover:bg-primary/90 flex gap-2 items-center"
-                  onClick={triggerFileInput}
-                >
-                  <Upload className="h-4 w-4" />
-                  Upload Image
-                </Button>
-                <Button 
-                  variant="outline"
-                  onClick={useDemoPastaImage}
-                >
-                  Use Demo Pasta Image
-                </Button>
-              </div>
+              <Button 
+                className="bg-primary hover:bg-primary/90 flex gap-2 items-center"
+                onClick={triggerFileInput}
+              >
+                <Upload className="h-4 w-4" />
+                Upload Image
+              </Button>
               <input 
                 ref={fileInputRef}
                 type="file" 
