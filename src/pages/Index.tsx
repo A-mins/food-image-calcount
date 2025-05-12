@@ -9,6 +9,11 @@ import Footer from '@/components/Footer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FoodNutritionData } from '@/services/calorieService';
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { generateFoodDescription, estimateCalories } from '@/services/openaiService';
 
 const Index = () => {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -16,16 +21,50 @@ const Index = () => {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [nutritionData, setNutritionData] = useState<FoodNutritionData | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [foodDescription, setFoodDescription] = useState<string>('');
+  const [apiKey, setApiKey] = useState<string>(() => {
+    return localStorage.getItem('openai_api_key') || '';
+  });
+  const [calorieEstimate, setCalorieEstimate] = useState<{
+    calories: string;
+    explanation: string;
+  } | null>(null);
   
   const handleImageUpload = (file: File) => {
     setSelectedImage(file);
     setNutritionData(null); // Reset previous analysis
+    setCalorieEstimate(null);
+    setFoodDescription('');
   };
 
-  const handleAnalysisComplete = (imgUrl: string, result: FoodNutritionData) => {
+  const handleAnalysisComplete = async (imgUrl: string, result: FoodNutritionData) => {
     setImageUrl(imgUrl);
     setNutritionData(result);
+    
+    try {
+      // Generate food description
+      const description = await generateFoodDescription(selectedImage!);
+      setFoodDescription(description);
+      
+      // Estimate calories using OpenAI
+      if (apiKey) {
+        const estimate = await estimateCalories(description, apiKey);
+        if (estimate.success) {
+          setCalorieEstimate({
+            calories: estimate.calories,
+            explanation: estimate.explanation
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error in analysis workflow:", error);
+    }
+    
     setActiveTab('results');
+  };
+  
+  const saveApiKey = () => {
+    localStorage.setItem('openai_api_key', apiKey);
   };
 
   return (
@@ -100,6 +139,34 @@ const Index = () => {
               Upload an image of your meal to get detailed calorie information
             </p>
             
+            <div className="mb-8 max-w-xl mx-auto">
+              <Card>
+                <CardHeader>
+                  <CardTitle>OpenAI API Key</CardTitle>
+                  <CardDescription>
+                    Enter your OpenAI API key to enable calorie estimation
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-col space-y-2">
+                    <Label htmlFor="apiKey">API Key</Label>
+                    <div className="flex space-x-2">
+                      <Input 
+                        id="apiKey"
+                        type="password" 
+                        value={apiKey} 
+                        onChange={e => setApiKey(e.target.value)} 
+                        placeholder="sk-..." 
+                        className="flex-1"
+                      />
+                      <Button onClick={saveApiKey}>Save Key</Button>
+                    </div>
+                    <p className="text-xs text-gray-500">Your API key is stored locally and never sent to our servers</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            
             <Tabs 
               defaultValue="upload" 
               value={activeTab}
@@ -120,13 +187,58 @@ const Index = () => {
               
               <TabsContent value="results" className="mt-0">
                 {nutritionData && imageUrl && (
-                  <CalorieResult 
-                    foodName={nutritionData.foodName}
-                    calories={nutritionData.calories}
-                    nutrition={nutritionData.nutrition}
-                    imageUrl={imageUrl}
-                    confidence={nutritionData.confidence}
-                  />
+                  <div className="space-y-8">
+                    <CalorieResult 
+                      foodName={nutritionData.foodName}
+                      calories={nutritionData.calories}
+                      nutrition={nutritionData.nutrition}
+                      imageUrl={imageUrl}
+                      confidence={nutritionData.confidence}
+                    />
+                    
+                    {foodDescription && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Food Description</CardTitle>
+                          <CardDescription>AI-generated description of your food</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-gray-700">{foodDescription}</p>
+                        </CardContent>
+                      </Card>
+                    )}
+                    
+                    {calorieEstimate ? (
+                      <Card className="bg-primary/5">
+                        <CardHeader>
+                          <CardTitle className="flex items-center justify-between">
+                            <span>AI Calorie Estimate</span>
+                            <span className="text-xl font-bold text-primary">{calorieEstimate.calories} kcal</span>
+                          </CardTitle>
+                          <CardDescription>Estimated using OpenAI GPT-4</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-2">
+                            <h4 className="font-medium">Breakdown:</h4>
+                            <p className="text-gray-700">{calorieEstimate.explanation}</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ) : apiKey ? (
+                      <Card className="bg-gray-50">
+                        <CardContent className="p-4 flex items-center justify-center">
+                          <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                          <span>Calculating calorie estimate...</span>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <Card className="bg-gray-50">
+                        <CardContent className="p-4 text-center">
+                          <p>Enter your OpenAI API key above to get an AI-powered calorie estimate</p>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
                 )}
               </TabsContent>
             </Tabs>

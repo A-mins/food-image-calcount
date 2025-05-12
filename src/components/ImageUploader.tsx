@@ -108,11 +108,11 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageUpload, onAnalysis
     }
   }, [selectedFile, previewImage, onAnalysisComplete]);
 
-  const triggerFileInput = () => {
+  const triggerFileInput = useCallback(() => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
-  };
+  }, []);
 
   return (
     <Card className="w-full max-w-xl mx-auto">
