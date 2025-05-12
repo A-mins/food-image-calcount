@@ -29,12 +29,21 @@ const Index = () => {
     calories: string;
     explanation: string;
   } | null>(null);
+  const [foodNutritionalInfo, setFoodNutritionalInfo] = useState<{
+    calories: string;
+    protein: string;
+    carbohydrates: string;
+    fat: string;
+    fiber: string;
+    sodium: string;
+  } | null>(null);
   
   const handleImageUpload = (file: File) => {
     setSelectedImage(file);
     setNutritionData(null); // Reset previous analysis
     setCalorieEstimate(null);
     setFoodDescription('');
+    setFoodNutritionalInfo(null);
   };
 
   const handleAnalysisComplete = async (imgUrl: string, result: FoodNutritionData) => {
@@ -42,13 +51,16 @@ const Index = () => {
     setNutritionData(result);
     
     try {
-      // Generate food description
-      const description = await generateFoodDescription(selectedImage!);
-      setFoodDescription(description);
-      
-      // Estimate calories using OpenAI
-      if (apiKey) {
-        const estimate = await estimateCalories(description, apiKey);
+      // Generate food description with nutritional info
+      if (apiKey && selectedImage) {
+        const foodDescResult = await generateFoodDescription(selectedImage, apiKey);
+        if (foodDescResult.success) {
+          setFoodDescription(foodDescResult.description);
+          setFoodNutritionalInfo(foodDescResult.nutritionalInfo);
+        }
+        
+        // Also get calorie estimate as before
+        const estimate = await estimateCalories(foodDescResult.description, apiKey);
         if (estimate.success) {
           setCalorieEstimate({
             calories: estimate.calories,
@@ -204,6 +216,45 @@ const Index = () => {
                         </CardHeader>
                         <CardContent>
                           <p className="text-gray-700">{foodDescription}</p>
+                        </CardContent>
+                      </Card>
+                    )}
+                    
+                    {foodNutritionalInfo && (
+                      <Card className="bg-primary/5">
+                        <CardHeader>
+                          <CardTitle>AI Nutritional Analysis</CardTitle>
+                          <CardDescription>Generated using OpenAI GPT-4</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-2">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <p className="font-medium">Calories:</p>
+                                <p>{foodNutritionalInfo.calories}</p>
+                              </div>
+                              <div>
+                                <p className="font-medium">Protein:</p>
+                                <p>{foodNutritionalInfo.protein}</p>
+                              </div>
+                              <div>
+                                <p className="font-medium">Carbohydrates:</p>
+                                <p>{foodNutritionalInfo.carbohydrates}</p>
+                              </div>
+                              <div>
+                                <p className="font-medium">Fat:</p>
+                                <p>{foodNutritionalInfo.fat}</p>
+                              </div>
+                              <div>
+                                <p className="font-medium">Fiber:</p>
+                                <p>{foodNutritionalInfo.fiber}</p>
+                              </div>
+                              <div>
+                                <p className="font-medium">Sodium:</p>
+                                <p>{foodNutritionalInfo.sodium}</p>
+                              </div>
+                            </div>
+                          </div>
                         </CardContent>
                       </Card>
                     )}
