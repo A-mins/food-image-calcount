@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import Header from '@/components/Header';
 import Hero from '@/components/Hero';
@@ -37,15 +38,17 @@ const Index = () => {
     try {
       // Generate food description
       const description = await generateFoodDescription(selectedImage!);
-      setFoodDescription(description);
-      
-      // Estimate calories using OpenAI
-      const estimate = await estimateCalories(description);
-      if (estimate.success) {
-        setCalorieEstimate({
-          calories: estimate.calories,
-          explanation: estimate.explanation
-        });
+      if (description.success) {
+        setFoodDescription(description.description);
+        
+        // Estimate calories using OpenAI
+        const estimate = await estimateCalories(description.description);
+        if (estimate.success) {
+          setCalorieEstimate({
+            calories: estimate.calories,
+            explanation: estimate.explanation
+          });
+        }
       }
     } catch (error) {
       console.error("Error in analysis workflow:", error);
