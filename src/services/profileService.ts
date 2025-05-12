@@ -13,11 +13,28 @@ export const saveUserProfile = async (profile: UserProfile): Promise<void> => {
   }
 };
 
-// Get user profile from local storage
+// Get user profile from local storage with default sample data if not found
 export const getUserProfile = (): UserProfile | null => {
   try {
     const profileData = localStorage.getItem('user_profile');
-    return profileData ? JSON.parse(profileData) : null;
+    
+    if (profileData) {
+      return JSON.parse(profileData);
+    } else {
+      // Default sample profile data
+      const sampleProfile: UserProfile = {
+        gender: 'male',
+        age: 32,
+        weight: 75,
+        height: 178,
+        activityLevel: 'moderate',
+        goal: 'maintain'
+      };
+      
+      // Automatically save the sample profile
+      localStorage.setItem('user_profile', JSON.stringify(sampleProfile));
+      return sampleProfile;
+    }
   } catch (error) {
     console.error('Error retrieving profile:', error);
     toast.error('Error retrieving your profile data');

@@ -24,13 +24,18 @@ import {
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { getUserProfile, calculateCalorieBudget, calculateMacroTargets } from "@/services/profileService";
+import { getTodaysFoodEntries, getAllFoodEntries, FoodEntry } from "@/services/foodDiaryService";
 import { Link } from 'react-router-dom';
+import CalorieProgress from '@/components/CalorieProgress';
+import RecentFoods from '@/components/RecentFoods';
 
 const Dashboard = () => {
   const [profile, setProfile] = useState<any>(null);
   const [dailyCalories, setDailyCalories] = useState<number>(0);
   const [macros, setMacros] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [todaysEntries, setTodaysEntries] = useState<FoodEntry[]>([]);
+  const [calorieData, setCalorieData] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -55,6 +60,13 @@ const Dashboard = () => {
               percentage: macroData.fatCalories / calories,
             }
           });
+
+          // Get today's food entries
+          const entries = getTodaysFoodEntries();
+          setTodaysEntries(entries);
+          
+          // Process weekly data for the chart
+          processWeeklyData();
         }
       } catch (error) {
         console.error('Error fetching user data:', error);
@@ -66,16 +78,40 @@ const Dashboard = () => {
     fetchUserData();
   }, []);
 
-  // Sample data for calorie intake vs. expenditure
-  const calorieData = [
-    { name: 'Mon', intake: 1800, expenditure: 2100 },
-    { name: 'Tue', intake: 2000, expenditure: 2200 },
-    { name: 'Wed', intake: 1900, expenditure: 2150 },
-    { name: 'Thu', intake: 2100, expenditure: 2300 },
-    { name: 'Fri', intake: 2300, expenditure: 2250 },
-    { name: 'Sat', intake: 2200, expenditure: 2400 },
-    { name: 'Sun', intake: 1950, expenditure: 2050 },
-  ];
+  const processWeeklyData = () => {
+    const allEntries = getAllFoodEntries();
+    const weeklyData: { [key: string]: { name: string, intake: number, expenditure: number } } = {};
+    
+    // Get dates for the past 7 days
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+      
+      weeklyData[dateStr] = {
+        name: dayName,
+        intake: 0,
+        expenditure: calculateCalorieBudget(getUserProfile()!)
+      };
+    }
+    
+    // Sum up calories for each day
+    allEntries.forEach(entry => {
+      if (weeklyData[entry.date]) {
+        weeklyData[entry.date].intake += entry.calories;
+      }
+    });
+    
+    // Convert to array for chart
+    const chartData = Object.values(weeklyData);
+    setCalorieData(chartData);
+  };
+
+  // Calculate total calories consumed today
+  const calculateTotalCalories = () => {
+    return todaysEntries.reduce((sum, entry) => sum + entry.calories, 0);
+  };
 
   // Colors for the pie chart
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28'];
@@ -111,6 +147,10 @@ const Dashboard = () => {
       </div>
     );
   }
+
+  const totalCalories = calculateTotalCalories();
+  const caloriesRemaining = dailyCalories - totalCalories;
+  const percentConsumed = (totalCalories / dailyCalories) * 100;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -202,14 +242,17 @@ const Dashboard = () => {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <span>Calories Consumed</span>
-                    <span className="font-semibold">0 / {dailyCalories}</span>
+                    <span className="font-semibold">{totalCalories} / {dailyCalories}</span>
                   </div>
                   <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div className="h-full bg-primary rounded-full" style={{ width: "0%" }}></div>
+                    <div 
+                      className="h-full bg-primary rounded-full" 
+                      style={{ width: `${Math.min(percentConsumed, 100)}%` }}
+                    ></div>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span>0%</span>
-                    <span>Remaining: {dailyCalories}</span>
+                    <span>{percentConsumed.toFixed(0)}%</span>
+                    <span>Remaining: {caloriesRemaining > 0 ? caloriesRemaining : 0}</span>
                   </div>
                   <Button className="w-full mt-2" asChild>
                     <Link to="/upload">Log Food</Link>
@@ -239,6 +282,9 @@ const Dashboard = () => {
               </ResponsiveContainer>
             </CardContent>
           </Card>
+          
+          {/* Recent Foods */}
+          <RecentFoods entries={todaysEntries.slice(0, 3)} />
           
           {/* Quick Access */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
