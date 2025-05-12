@@ -2,16 +2,20 @@
 import React, { useState, useCallback } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Upload, ImageIcon } from "lucide-react";
+import { Upload, ImageIcon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { analyzeFoodImage } from "@/services/calorieService";
 
 interface ImageUploaderProps {
   onImageUpload: (file: File) => void;
+  onAnalysisComplete: (imageUrl: string, result: any) => void;
 }
 
-const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageUpload }) => {
+const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageUpload, onAnalysisComplete }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const handleDragEnter = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -65,13 +69,43 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageUpload }) => {
     };
     reader.readAsDataURL(file);
 
+    // Store the file for later analysis
+    setSelectedFile(file);
+    
     // Pass file to parent component
     onImageUpload(file);
   }, [onImageUpload]);
 
   const resetImage = useCallback(() => {
     setPreviewImage(null);
+    setSelectedFile(null);
   }, []);
+
+  const handleAnalyzeImage = useCallback(async () => {
+    if (!selectedFile) {
+      toast.error("Please upload an image first");
+      return;
+    }
+
+    setIsAnalyzing(true);
+
+    try {
+      // Call the calorie analysis service
+      const result = await analyzeFoodImage(selectedFile);
+      
+      // Pass the results back to the parent component
+      if (previewImage) {
+        onAnalysisComplete(previewImage, result);
+      }
+      
+      toast.success(`Analysis complete: ${result.foodName}`);
+    } catch (error) {
+      console.error("Error analyzing image:", error);
+      toast.error("Failed to analyze image. Please try again.");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }, [selectedFile, previewImage, onAnalysisComplete]);
 
   return (
     <Card className="w-full max-w-xl mx-auto">
@@ -119,8 +153,19 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageUpload }) => {
               <Button variant="outline" onClick={resetImage}>
                 Upload Different Image
               </Button>
-              <Button className="bg-primary hover:bg-primary/90">
-                Analyze Calories
+              <Button 
+                className="bg-primary hover:bg-primary/90 flex gap-2 items-center"
+                onClick={handleAnalyzeImage}
+                disabled={isAnalyzing}
+              >
+                {isAnalyzing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Analyzing...
+                  </>
+                ) : (
+                  <>Analyze Calories</>
+                )}
               </Button>
             </div>
           </div>

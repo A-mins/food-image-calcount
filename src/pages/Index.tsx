@@ -8,28 +8,24 @@ import FoodGallery from '@/components/FoodGallery';
 import Footer from '@/components/Footer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { FoodNutritionData } from '@/services/calorieService';
 
 const Index = () => {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [analyzeClicked, setAnalyzeClicked] = useState(false);
+  const [activeTab, setActiveTab] = useState('upload');
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [nutritionData, setNutritionData] = useState<FoodNutritionData | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   
   const handleImageUpload = (file: File) => {
     setSelectedImage(file);
-    setAnalyzeClicked(false);
+    setNutritionData(null); // Reset previous analysis
   };
 
-  // Demo data for the calorie result (simulating AI analysis)
-  const demoNutritionData = {
-    foodName: "Grilled Chicken Salad",
-    calories: 320,
-    nutrition: [
-      { name: "Protein", value: 28, unit: "g", percentage: 56 },
-      { name: "Carbohydrates", value: 12, unit: "g", percentage: 4 },
-      { name: "Fat", value: 18, unit: "g", percentage: 23 },
-      { name: "Fiber", value: 4, unit: "g", percentage: 16 },
-      { name: "Sodium", value: 520, unit: "mg", percentage: 22 },
-    ],
-    imageUrl: selectedImage ? URL.createObjectURL(selectedImage) : "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=1780&auto=format&fit=crop"
+  const handleAnalysisComplete = (imgUrl: string, result: FoodNutritionData) => {
+    setImageUrl(imgUrl);
+    setNutritionData(result);
+    setActiveTab('results');
   };
 
   return (
@@ -104,47 +100,36 @@ const Index = () => {
               Upload an image of your meal to get detailed calorie information
             </p>
             
-            <Tabs defaultValue="upload" className="max-w-4xl mx-auto">
+            <Tabs 
+              defaultValue="upload" 
+              value={activeTab}
+              onValueChange={setActiveTab}
+              className="max-w-4xl mx-auto"
+            >
               <TabsList className="grid grid-cols-2 mb-8">
                 <TabsTrigger value="upload">Upload Image</TabsTrigger>
-                <TabsTrigger value="results" disabled={!selectedImage}>Results</TabsTrigger>
+                <TabsTrigger value="results" disabled={!nutritionData}>Results</TabsTrigger>
               </TabsList>
               
               <TabsContent value="upload" className="mt-0">
-                <ImageUploader onImageUpload={handleImageUpload} />
-                {selectedImage && (
-                  <div className="flex justify-center mt-6">
-                    <button 
-                      className="bg-primary hover:bg-primary/90 text-white px-6 py-2 rounded-md transition-colors"
-                      onClick={() => setAnalyzeClicked(true)}
-                    >
-                      Analyze Calories
-                    </button>
-                  </div>
-                )}
+                <ImageUploader 
+                  onImageUpload={handleImageUpload} 
+                  onAnalysisComplete={handleAnalysisComplete} 
+                />
               </TabsContent>
               
               <TabsContent value="results" className="mt-0">
-                <CalorieResult 
-                  foodName={demoNutritionData.foodName}
-                  calories={demoNutritionData.calories}
-                  nutrition={demoNutritionData.nutrition}
-                  imageUrl={demoNutritionData.imageUrl}
-                />
+                {nutritionData && imageUrl && (
+                  <CalorieResult 
+                    foodName={nutritionData.foodName}
+                    calories={nutritionData.calories}
+                    nutrition={nutritionData.nutrition}
+                    imageUrl={imageUrl}
+                    confidence={nutritionData.confidence}
+                  />
+                )}
               </TabsContent>
             </Tabs>
-            
-            {analyzeClicked && selectedImage && (
-              <div className="mt-10 animate-fade-in">
-                <h3 className="text-2xl font-bold mb-6 text-center">Analysis Results</h3>
-                <CalorieResult 
-                  foodName={demoNutritionData.foodName}
-                  calories={demoNutritionData.calories}
-                  nutrition={demoNutritionData.nutrition}
-                  imageUrl={demoNutritionData.imageUrl}
-                />
-              </div>
-            )}
           </div>
         </section>
       </main>

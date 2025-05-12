@@ -1,7 +1,8 @@
 
 import React from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 
 interface NutritionInfo {
   name: string;
@@ -15,9 +16,16 @@ interface CalorieResultProps {
   calories: number;
   nutrition: NutritionInfo[];
   imageUrl: string;
+  confidence?: number;
 }
 
-const CalorieResult: React.FC<CalorieResultProps> = ({ foodName, calories, nutrition, imageUrl }) => {
+const CalorieResult: React.FC<CalorieResultProps> = ({ 
+  foodName, 
+  calories, 
+  nutrition, 
+  imageUrl,
+  confidence 
+}) => {
   return (
     <Card className="w-full max-w-xl mx-auto overflow-hidden">
       <div className="grid grid-cols-1 md:grid-cols-2">
@@ -30,7 +38,14 @@ const CalorieResult: React.FC<CalorieResultProps> = ({ foodName, calories, nutri
         </div>
         <div>
           <CardHeader>
-            <CardTitle className="text-2xl">{foodName}</CardTitle>
+            <div className="flex justify-between items-start">
+              <CardTitle className="text-2xl">{foodName}</CardTitle>
+              {confidence && (
+                <Badge variant="outline" className="bg-primary/10 text-primary">
+                  {Math.round(confidence * 100)}% confidence
+                </Badge>
+              )}
+            </div>
             <CardDescription>Nutritional Information</CardDescription>
           </CardHeader>
           <CardContent>
@@ -58,6 +73,9 @@ const CalorieResult: React.FC<CalorieResultProps> = ({ foodName, calories, nutri
               ))}
             </div>
           </CardContent>
+          <CardFooter className="text-xs text-gray-500 pt-0 text-right">
+            *Values are estimated based on visual analysis
+          </CardFooter>
         </div>
       </div>
     </Card>
