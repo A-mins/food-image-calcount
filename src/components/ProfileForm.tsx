@@ -24,7 +24,6 @@ import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { saveUserProfile } from "@/services/profileService";
-import { UserProfile } from "@/types/user";
 
 // Define the form schema with validation
 const profileFormSchema = z.object({
@@ -60,7 +59,7 @@ const ProfileForm = () => {
   const navigate = useNavigate();
   
   // Default form values
-  const defaultValues: ProfileFormValues = {
+  const defaultValues: Partial<ProfileFormValues> = {
     gender: "male",
     age: 30,
     weight: 70,
@@ -76,8 +75,7 @@ const ProfileForm = () => {
 
   async function onSubmit(data: ProfileFormValues) {
     try {
-      // All fields are required in the form, so we can safely pass data as UserProfile
-      await saveUserProfile(data as UserProfile);
+      await saveUserProfile(data);
       toast.success("Profile updated successfully!");
       navigate('/dashboard');
     } catch (error) {
