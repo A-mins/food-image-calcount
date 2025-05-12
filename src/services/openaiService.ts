@@ -32,7 +32,7 @@ interface FoodDescriptionResult {
 
 // You should replace this with your valid API key
 // For security, consider using environment variables in production
-const OPENAI_API_KEY = "";
+const OPENAI_API_KEY = "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";
 
 /**
  * Send a food description to OpenAI API for calorie estimation
